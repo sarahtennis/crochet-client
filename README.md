@@ -1,1 +1,1 @@
-# crochet-client
+# Crochet Pattern Visualization

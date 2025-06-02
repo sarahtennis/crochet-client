@@ -1,0 +1,35 @@
+{
+  "name": "crochet",
+  "version": "1.0.0",
+  "description": "Crochet pattern visualization",
+  "main": "index.ts",
+  "scripts": {
+    "build": "webpack",
+    "dev-server": "webpack serve"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sarahtennis/crochet-client.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sarahtennis/crochet-client/issues"
+  },
+  "homepage": "https://github.com/sarahtennis/crochet-client#readme",
+  "devDependencies": {
+    "css-loader": "^6.3.0",
+    "html-webpack-plugin": "^5.5.1",
+    "sass": "^1.62.1",
+    "sass-loader": "^13.2.2",
+    "style-loader": "^3.3.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.4",
+    "webpack": "^5.83.1",
+    "webpack-cli": "^4.8.0",
+    "webpack-dev-server": "^4.3.0"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.1"
+  }
+}
