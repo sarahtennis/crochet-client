@@ -10,7 +10,7 @@ export class SceneService extends SingletonService {
     super();
   }
 
-  public static drawScene() {
+  public static drawScene(rotation: number = null) {
     const context = GLService.getContext();
     if (!context) return;
 
@@ -49,6 +49,15 @@ export class SceneService extends SingletonService {
       modelViewMatrix, // matrix to translate
       [-0.0, 0.0, -6.0],
     ); // amount to translate
+
+    if (rotation !== null) {
+      mat4.rotate(
+        modelViewMatrix, // destination matrix
+        modelViewMatrix, // matrix to rotate
+        rotation, // amount to rotate in radians
+        [0, 0, 1],
+      ); // axis to rotate around
+    }
     
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.

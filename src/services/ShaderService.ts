@@ -78,7 +78,10 @@ export class ShaderService extends SingletonService {
           shaderProgram,
           "aVertexPosition"
         ),
-        vertexColor: context.getAttribLocation(shaderProgram, "aVertexColor"),
+        vertexColor: context.getAttribLocation(
+          shaderProgram,
+          "aVertexColor"
+        ),
       },
       uniformLocations: {
         projectionMatrix: context.getUniformLocation(
