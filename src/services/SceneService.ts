@@ -3,7 +3,7 @@ import { mat4 } from 'gl-matrix';
 import { Buffers, BufferService } from "./BufferService";
 import { GLService } from "./GLService";
 import { SingletonService } from "./SingletonService";
-import { ShaderService } from './ShaderService';
+import { ProgramInfo, ShaderService } from './ShaderService';
 
 export class SceneService extends SingletonService {
   constructor() {
@@ -55,6 +55,7 @@ export class SceneService extends SingletonService {
     const buffers = BufferService.getBuffers();
     const programInfo = ShaderService.getProgramInfo();
     SceneService.setPositionAttribute(context, buffers, programInfo);
+    SceneService.setColorAttribute(context, buffers, programInfo);
     
     // Tell WebGL to use our program when drawing
     context.useProgram(programInfo.program);
@@ -79,7 +80,7 @@ export class SceneService extends SingletonService {
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
-  private static setPositionAttribute(context: WebGLRenderingContext, buffers: Buffers, programInfo: any) {
+  private static setPositionAttribute(context: WebGLRenderingContext, buffers: Buffers, programInfo: ProgramInfo) {
     const numComponents = 2; // pull out 2 values per iteration
     const type = context.FLOAT; // the data in the buffer is 32bit floats
     const normalize = false; // don't normalize
@@ -96,5 +97,25 @@ export class SceneService extends SingletonService {
       offset,
     );
     context.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+  }
+
+  // Tell WebGL how to pull out the colors from the color buffer
+  // into the vertexColor attribute.
+  private static setColorAttribute(context: WebGLRenderingContext, buffers: Buffers, programInfo: ProgramInfo) {
+    const numComponents = 4;
+    const type = context.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    context.bindBuffer(context.ARRAY_BUFFER, buffers.color);
+    context.vertexAttribPointer(
+      programInfo.attribLocations.vertexColor,
+      numComponents,
+      type,
+      normalize,
+      stride,
+      offset,
+    );
+    context.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
   }
 }
