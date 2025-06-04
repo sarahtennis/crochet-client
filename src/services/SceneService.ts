@@ -1,9 +1,9 @@
-import { mat4 } from 'gl-matrix';
+import { mat4 } from "gl-matrix";
 
 import { Buffers, BufferService } from "./BufferService";
 import { GLService } from "./GLService";
 import { SingletonService } from "./SingletonService";
-import { ProgramInfo, ShaderService } from './ShaderService';
+import { ProgramInfo, ShaderService } from "./ShaderService";
 
 export class SceneService extends SingletonService {
   constructor() {
@@ -15,10 +15,10 @@ export class SceneService extends SingletonService {
     if (!context) return;
 
     context.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-    context.clearDepth(1.0);                // Clear everything
-    context.enable(context.DEPTH_TEST);     // Enable depth testing
-    context.depthFunc(context.LEQUAL);      // Near things obscure far things
-    
+    context.clearDepth(1.0); // Clear everything
+    context.enable(context.DEPTH_TEST); // Enable depth testing
+    context.depthFunc(context.LEQUAL); // Near things obscure far things
+
     // Clear the canvas
     context.clear(context.COLOR_BUFFER_BIT || context.DEPTH_BUFFER_BIT);
 
@@ -33,64 +33,100 @@ export class SceneService extends SingletonService {
     const zNear = 0.1;
     const zFar = 100.0;
     const projectionMatrix = mat4.create();
-    
+
     // note: glMatrix always has the first argument
     // as the destination to receive the result.
     mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-    
+
     // Set the drawing position to the "identity" point, which is
     // the center of the scene.
     const modelViewMatrix = mat4.create();
-    
+
     // Now move the drawing position a bit to where we want to
     // start drawing the square.
     mat4.translate(
       modelViewMatrix, // destination matrix
       modelViewMatrix, // matrix to translate
-      [-0.0, 0.0, -6.0],
+      [-0.0, 0.0, -6.0]
     ); // amount to translate
 
-    if (rotation !== null) {
+    if (rotation !== null && false) {
       mat4.rotate(
         modelViewMatrix, // destination matrix
         modelViewMatrix, // matrix to rotate
         rotation, // amount to rotate in radians
-        [0, 0, 1],
+        [0, 0, 1]
       ); // axis to rotate around
     }
-    
+
+    if (rotation !== null) {
+      // Cube rotation
+      mat4.rotate(
+        modelViewMatrix, // destination matrix
+        modelViewMatrix, // matrix to rotate
+        rotation, // amount to rotate in radians
+        [0, 0, 1]
+      ); // axis to rotate around (Z)
+      mat4.rotate(
+        modelViewMatrix, // destination matrix
+        modelViewMatrix, // matrix to rotate
+        rotation * 0.7, // amount to rotate in radians
+        [0, 1, 0]
+      ); // axis to rotate around (Y)
+      mat4.rotate(
+        modelViewMatrix, // destination matrix
+        modelViewMatrix, // matrix to rotate
+        rotation * 0.3, // amount to rotate in radians
+        [1, 0, 0]
+      ); // axis to rotate around (X)
+    }
+
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
     const buffers = BufferService.getBuffers();
     const programInfo = ShaderService.getProgramInfo();
     SceneService.setPositionAttribute(context, buffers, programInfo);
     SceneService.setColorAttribute(context, buffers, programInfo);
-    
+    context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, buffers.indices);
     // Tell WebGL to use our program when drawing
     context.useProgram(programInfo.program);
-    
+
     // Set the shader uniforms
     context.uniformMatrix4fv(
       programInfo.uniformLocations.projectionMatrix,
       false,
-      projectionMatrix,
+      projectionMatrix
     );
     context.uniformMatrix4fv(
       programInfo.uniformLocations.modelViewMatrix,
       false,
-      modelViewMatrix,
+      modelViewMatrix
     );
-      {
-        const offset = 0;
-        const vertexCount = 4;
-        context.drawArrays(context.TRIANGLE_STRIP, offset, vertexCount);
-      }
+    // {
+    //   // Square
+    //   const offset = 0;
+    //   const vertexCount = 4;
+    //   // drawing using the vertices directly
+    //   context.drawArrays(context.TRIANGLE_STRIP, offset, vertexCount);
+    // }
+    {
+      const vertexCount = 36;
+      const type = context.UNSIGNED_SHORT;
+      const offset = 0;
+      context.drawElements(context.TRIANGLES, vertexCount, type, offset);
     }
+  }
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
-  private static setPositionAttribute(context: WebGLRenderingContext, buffers: Buffers, programInfo: ProgramInfo) {
-    const numComponents = 2; // pull out 2 values per iteration
+  private static setPositionAttribute(
+    context: WebGLRenderingContext,
+    buffers: Buffers,
+    programInfo: ProgramInfo
+  ) {
+    // No z component
+    // const numComponents = 2;
+    const numComponents = 3;
     const type = context.FLOAT; // the data in the buffer is 32bit floats
     const normalize = false; // don't normalize
     const stride = 0; // how many bytes to get from one set of values to the next
@@ -103,14 +139,18 @@ export class SceneService extends SingletonService {
       type,
       normalize,
       stride,
-      offset,
+      offset
     );
     context.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
   }
 
   // Tell WebGL how to pull out the colors from the color buffer
   // into the vertexColor attribute.
-  private static setColorAttribute(context: WebGLRenderingContext, buffers: Buffers, programInfo: ProgramInfo) {
+  private static setColorAttribute(
+    context: WebGLRenderingContext,
+    buffers: Buffers,
+    programInfo: ProgramInfo
+  ) {
     const numComponents = 4;
     const type = context.FLOAT;
     const normalize = false;
@@ -123,7 +163,7 @@ export class SceneService extends SingletonService {
       type,
       normalize,
       stride,
-      offset,
+      offset
     );
     context.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
   }

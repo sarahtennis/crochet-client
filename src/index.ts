@@ -8,15 +8,16 @@ type Seconds = number;
 
 (() => {
   let then: Seconds = 0;
-  let squareRotation = 0.0;
+  // let squareRotation = 0.0;
+  let cubeRotation = 0.0;
 
   const render = (now: Milliseconds) => {
     const secondsNow = now * 0.001;
     const timeChange = secondsNow - then;
     then = secondsNow;
 
-    SceneService.drawScene(squareRotation);
-    squareRotation += timeChange;
+    SceneService.drawScene(cubeRotation);
+    cubeRotation += timeChange;
 
     requestAnimationFrame(render);
   }
