@@ -5,16 +5,18 @@ export interface ProgramInfo {
   program: WebGLProgram;
   attribLocations: {
     vertexPosition: GLint;
-    vertexColor: GLint;
+    vertexColor?: GLint;
+    textureCoord?: GLint;
   };
   uniformLocations: {
     projectionMatrix: WebGLUniformLocation | null;
     modelViewMatrix: WebGLUniformLocation | null;
+    uSampler?: WebGLUniformLocation | null;
   };
 }
 
-// Vertex shader
-const vsSource = `
+// Vertex shader (color data)
+const vsSourceColorData = `
   attribute vec4 aVertexPosition;
   attribute vec4 aVertexColor;
 
@@ -30,7 +32,7 @@ const vsSource = `
 `;
 
 // Fragment shader
-const fsSource = `
+const fsSourceColorData = `
   varying lowp vec4 vColor;
 
   void main(void) {
@@ -38,11 +40,36 @@ const fsSource = `
   }
 `;
 
+const vsSourceTexture = `
+  attribute vec4 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uModelViewMatrix;
+  uniform mat4 uProjectionMatrix;
+
+  varying highp vec2 vTextureCoord;
+
+  void main(void) {
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vTextureCoord = aTextureCoord;
+  }
+`;
+
+const fsSourceTexture = `
+  varying highp vec2 vTextureCoord;
+
+  uniform sampler2D uSampler;
+
+  void main(void) {
+    gl_FragColor = texture2D(uSampler, vTextureCoord);
+  }
+`;
+
 export class ShaderService extends SingletonService {
   private programInfo: ProgramInfo;
   constructor() {
     super();
-    this.initShaderProgram(vsSource, fsSource);
+    this.initShaderProgram(vsSourceTexture, fsSourceTexture);
   }
 
   public static getProgramInfo() {
@@ -71,6 +98,28 @@ export class ShaderService extends SingletonService {
     // Collect all the info needed to use the shader program.
     // Look up which attribute our shader program is using
     // for aVertexPosition and look up uniform locations.
+    // ----- Color data
+    // this.programInfo = {
+    //   program: shaderProgram,
+    //   attribLocations: {
+    //     vertexPosition: context.getAttribLocation(
+    //       shaderProgram,
+    //       "aVertexPosition"
+    //     ),
+    //     vertexColor: context.getAttribLocation(shaderProgram, "aVertexColor"),
+    //   },
+    //   uniformLocations: {
+    //     projectionMatrix: context.getUniformLocation(
+    //       shaderProgram,
+    //       "uProjectionMatrix"
+    //     ),
+    //     modelViewMatrix: context.getUniformLocation(
+    //       shaderProgram,
+    //       "uModelViewMatrix"
+    //     ),
+    //   },
+    // };
+
     this.programInfo = {
       program: shaderProgram,
       attribLocations: {
@@ -78,10 +127,7 @@ export class ShaderService extends SingletonService {
           shaderProgram,
           "aVertexPosition"
         ),
-        vertexColor: context.getAttribLocation(
-          shaderProgram,
-          "aVertexColor"
-        ),
+        textureCoord: context.getAttribLocation(shaderProgram, "aTextureCoord"),
       },
       uniformLocations: {
         projectionMatrix: context.getUniformLocation(
@@ -92,6 +138,7 @@ export class ShaderService extends SingletonService {
           shaderProgram,
           "uModelViewMatrix"
         ),
+        uSampler: context.getUniformLocation(shaderProgram, "uSampler"),
       },
     };
 
