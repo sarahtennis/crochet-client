@@ -5,6 +5,7 @@ export interface ProgramInfo {
   program: WebGLProgram;
   attribLocations: {
     vertexPosition: GLint;
+    vertexColor: GLint;
   };
   uniformLocations: {
     projectionMatrix: WebGLUniformLocation | null;
@@ -15,17 +16,25 @@ export interface ProgramInfo {
 // Vertex shader
 const vsSource = `
   attribute vec4 aVertexPosition;
+  attribute vec4 aVertexColor;
+
   uniform mat4 uModelViewMatrix;
   uniform mat4 uProjectionMatrix;
-  void main() {
+
+  varying lowp vec4 vColor;
+
+  void main(void) {
     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vColor = aVertexColor;
   }
 `;
 
 // Fragment shader
 const fsSource = `
-  void main() {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  varying lowp vec4 vColor;
+
+  void main(void) {
+    gl_FragColor = vColor;
   }
 `;
 
@@ -40,10 +49,7 @@ export class ShaderService extends SingletonService {
     return ShaderService.getInstance().programInfo;
   }
 
-  private initShaderProgram(
-    vSource: string,
-    fSource: string
-  ) {
+  private initShaderProgram(vSource: string, fSource: string) {
     const context = GLService.getContext();
     const vertexShader = this.loadShader({
       context,
@@ -68,17 +74,34 @@ export class ShaderService extends SingletonService {
     this.programInfo = {
       program: shaderProgram,
       attribLocations: {
-        vertexPosition: context.getAttribLocation(shaderProgram, "aVertexPosition"),
+        vertexPosition: context.getAttribLocation(
+          shaderProgram,
+          "aVertexPosition"
+        ),
+        vertexColor: context.getAttribLocation(
+          shaderProgram,
+          "aVertexColor"
+        ),
       },
       uniformLocations: {
-        projectionMatrix: context.getUniformLocation(shaderProgram, "uProjectionMatrix"),
-        modelViewMatrix: context.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+        projectionMatrix: context.getUniformLocation(
+          shaderProgram,
+          "uProjectionMatrix"
+        ),
+        modelViewMatrix: context.getUniformLocation(
+          shaderProgram,
+          "uModelViewMatrix"
+        ),
       },
     };
 
     // If creating the shader program failed, alert
     if (!context.getProgramParameter(shaderProgram, context.LINK_STATUS)) {
-      throw new Error(`Unable to initial shader program: ${context.getProgramInfoLog(shaderProgram)}`);
+      throw new Error(
+        `Unable to initial shader program: ${context.getProgramInfoLog(
+          shaderProgram
+        )}`
+      );
     }
     return shaderProgram;
   }
