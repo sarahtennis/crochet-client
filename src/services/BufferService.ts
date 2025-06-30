@@ -43,6 +43,7 @@ type Colors = number[];
 export interface Buffers {
   position: WebGLBuffer;
   indices: WebGLBuffer;
+  normal: WebGLBuffer;
   color?: WebGLBuffer;
   textureCoord?: WebGLBuffer;
 }
@@ -59,7 +60,7 @@ export class BufferService extends SingletonService {
     // Load texture
     TextureService.loadTexture(
       context,
-      __dirname + 'images/circuit-board.svg',
+      __dirname + "images/circuit-board.svg"
     );
     // Flip image pixels into the bottom-to-top order that WebGL expects.
     context.pixelStorei(context.UNPACK_FLIP_Y_WEBGL, true);
@@ -77,6 +78,7 @@ export class BufferService extends SingletonService {
       // color: BufferService.createColorBuffer(context),
       indices: BufferService.createIndexBuffer(context),
       textureCoord: BufferService.createTextureBuffer(context),
+      normal: BufferService.createNormalBuffer(context),
     };
   }
 
@@ -183,5 +185,33 @@ export class BufferService extends SingletonService {
     );
 
     return textureCoordBuffer;
+  }
+
+  private static createNormalBuffer(context: WebGLRenderingContext) {
+    const normalBuffer = context.createBuffer();
+    context.bindBuffer(context.ARRAY_BUFFER, normalBuffer);
+
+    const vertexNormals = [
+      // Front
+      0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+      // Back
+      0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+      // Top
+      0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+      // Bottom
+      0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+      // Right
+      1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+      // Left
+      -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+    ];
+
+    context.bufferData(
+      context.ARRAY_BUFFER,
+      new Float32Array(vertexNormals),
+      context.STATIC_DRAW
+    );
+
+    return normalBuffer;
   }
 }
