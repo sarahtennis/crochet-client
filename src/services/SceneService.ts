@@ -4,6 +4,7 @@ import { Buffers, BufferService } from "./BufferService";
 import { GLService } from "./GLService";
 import { SingletonService } from "./SingletonService";
 import { ProgramInfo, ShaderService } from "./ShaderService";
+import { TextureService } from "./TextureService";
 
 export class SceneService extends SingletonService {
   constructor() {
@@ -81,12 +82,18 @@ export class SceneService extends SingletonService {
       ); // axis to rotate around (X)
     }
 
+    const normalMatrix = mat4.create();
+    mat4.invert(normalMatrix, modelViewMatrix);
+    mat4.transpose(normalMatrix, normalMatrix);
+
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
     const buffers = BufferService.getBuffers();
     const programInfo = ShaderService.getProgramInfo();
     SceneService.setPositionAttribute(context, buffers, programInfo);
-    SceneService.setColorAttribute(context, buffers, programInfo);
+    // SceneService.setColorAttribute(context, buffers, programInfo);
+    SceneService.setTextureAttribute(context, buffers, programInfo);
+    SceneService.setNormalAttribute(context, buffers, programInfo);
     context.bindBuffer(context.ELEMENT_ARRAY_BUFFER, buffers.indices);
     // Tell WebGL to use our program when drawing
     context.useProgram(programInfo.program);
@@ -102,6 +109,20 @@ export class SceneService extends SingletonService {
       false,
       modelViewMatrix
     );
+    context.uniformMatrix4fv(
+      programInfo.uniformLocations.normalMatrix,
+      false,
+      normalMatrix
+    );
+    // Tell WebGL we want to affect texture unit 0
+    context.activeTexture(context.TEXTURE0);
+
+    const texture = TextureService.getTexture();
+    // Bind the texture to texture unit 0
+    context.bindTexture(context.TEXTURE_2D, texture);
+
+    // Tell the shader we bound the texture to texture unit 0
+    context.uniform1i(programInfo.uniformLocations.uSampler, 0);
     // {
     //   // Square
     //   const offset = 0;
@@ -166,5 +187,52 @@ export class SceneService extends SingletonService {
       offset
     );
     context.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+  }
+
+  // tell webgl how to pull out the texture coordinates from buffer
+  private static setTextureAttribute(
+    context: WebGLRenderingContext,
+    buffers: Buffers,
+    programInfo: ProgramInfo
+  ) {
+    const num = 2; // every coordinate composed of 2 values
+    const type = context.FLOAT; // the data in the buffer is 32-bit float
+    const normalize = false; // don't normalize
+    const stride = 0; // how many bytes to get from one set to the next
+    const offset = 0; // how many bytes inside the buffer to start from
+    context.bindBuffer(context.ARRAY_BUFFER, buffers.textureCoord);
+    context.vertexAttribPointer(
+      programInfo.attribLocations.textureCoord,
+      num,
+      type,
+      normalize,
+      stride,
+      offset
+    );
+    context.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+  }
+
+  // Tell WebGL how to pull out the normals from
+  // the normal buffer into the vertexNormal attribute.
+  private static setNormalAttribute(
+    context: WebGLRenderingContext,
+    buffers: Buffers,
+    programInfo: ProgramInfo
+  ) {
+    const numComponents = 3;
+    const type = context.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    context.bindBuffer(context.ARRAY_BUFFER, buffers.normal);
+    context.vertexAttribPointer(
+      programInfo.attribLocations.vertexNormal,
+      numComponents,
+      type,
+      normalize,
+      stride,
+      offset
+    );
+    context.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
   }
 }

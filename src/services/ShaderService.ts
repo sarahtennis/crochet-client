@@ -5,16 +5,20 @@ export interface ProgramInfo {
   program: WebGLProgram;
   attribLocations: {
     vertexPosition: GLint;
-    vertexColor: GLint;
+    vertexNormal: GLint;
+    vertexColor?: GLint;
+    textureCoord?: GLint;
   };
   uniformLocations: {
+    normalMatrix: WebGLUniformLocation | null;
     projectionMatrix: WebGLUniformLocation | null;
     modelViewMatrix: WebGLUniformLocation | null;
+    uSampler?: WebGLUniformLocation | null;
   };
 }
 
-// Vertex shader
-const vsSource = `
+// Vertex shader (color data)
+const vsSourceColorData = `
   attribute vec4 aVertexPosition;
   attribute vec4 aVertexColor;
 
@@ -30,7 +34,7 @@ const vsSource = `
 `;
 
 // Fragment shader
-const fsSource = `
+const fsSourceColorData = `
   varying lowp vec4 vColor;
 
   void main(void) {
@@ -38,11 +42,78 @@ const fsSource = `
   }
 `;
 
+const vsSourceTexture = `
+  attribute vec4 aVertexPosition;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uModelViewMatrix;
+  uniform mat4 uProjectionMatrix;
+
+  varying highp vec2 vTextureCoord;
+
+  void main(void) {
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vTextureCoord = aTextureCoord;
+  }
+`;
+
+const fsSourceTexture = `
+  varying highp vec2 vTextureCoord;
+
+  uniform sampler2D uSampler;
+
+  void main(void) {
+    gl_FragColor = texture2D(uSampler, vTextureCoord);
+  }
+`;
+
+const vsSourceTextureNormal = `
+  attribute vec4 aVertexPosition;
+  attribute vec3 aVertexNormal;
+  attribute vec2 aTextureCoord;
+
+  uniform mat4 uNormalMatrix;
+  uniform mat4 uModelViewMatrix;
+  uniform mat4 uProjectionMatrix;
+
+  varying highp vec2 vTextureCoord;
+  varying highp vec3 vLighting;
+
+  void main(void) {
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vTextureCoord = aTextureCoord;
+
+    // Apply lighting effect
+
+    highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+    highp vec3 directionalLightColor = vec3(1, 1, 1);
+    highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+
+    highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+    highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+    vLighting = ambientLight + (directionalLightColor * directional);
+  }
+`;
+
+const fsSourceTextureNormal = `
+  varying highp vec2 vTextureCoord;
+  varying highp vec3 vLighting;
+
+  uniform sampler2D uSampler;
+
+  void main(void) {
+    highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+    gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+  }
+`;
+
 export class ShaderService extends SingletonService {
   private programInfo: ProgramInfo;
   constructor() {
     super();
-    this.initShaderProgram(vsSource, fsSource);
+    this.initShaderProgram(vsSourceTextureNormal, fsSourceTextureNormal);
   }
 
   public static getProgramInfo() {
@@ -71,6 +142,28 @@ export class ShaderService extends SingletonService {
     // Collect all the info needed to use the shader program.
     // Look up which attribute our shader program is using
     // for aVertexPosition and look up uniform locations.
+    // ----- Color data
+    // this.programInfo = {
+    //   program: shaderProgram,
+    //   attribLocations: {
+    //     vertexPosition: context.getAttribLocation(
+    //       shaderProgram,
+    //       "aVertexPosition"
+    //     ),
+    //     vertexColor: context.getAttribLocation(shaderProgram, "aVertexColor"),
+    //   },
+    //   uniformLocations: {
+    //     projectionMatrix: context.getUniformLocation(
+    //       shaderProgram,
+    //       "uProjectionMatrix"
+    //     ),
+    //     modelViewMatrix: context.getUniformLocation(
+    //       shaderProgram,
+    //       "uModelViewMatrix"
+    //     ),
+    //   },
+    // };
+
     this.programInfo = {
       program: shaderProgram,
       attribLocations: {
@@ -78,10 +171,8 @@ export class ShaderService extends SingletonService {
           shaderProgram,
           "aVertexPosition"
         ),
-        vertexColor: context.getAttribLocation(
-          shaderProgram,
-          "aVertexColor"
-        ),
+        textureCoord: context.getAttribLocation(shaderProgram, "aTextureCoord"),
+        vertexNormal: context.getAttribLocation(shaderProgram, "aVertexNormal"),
       },
       uniformLocations: {
         projectionMatrix: context.getUniformLocation(
@@ -92,6 +183,11 @@ export class ShaderService extends SingletonService {
           shaderProgram,
           "uModelViewMatrix"
         ),
+        normalMatrix: context.getUniformLocation(
+          shaderProgram,
+          "uNormalMatrix"
+        ),
+        uSampler: context.getUniformLocation(shaderProgram, "uSampler"),
       },
     };
 

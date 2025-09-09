@@ -1,5 +1,7 @@
-import { GLService } from "./GLService";
 import { SingletonService } from "./SingletonService";
+
+import { GLService } from "./GLService";
+import { TextureService } from "./TextureService";
 
 // Vertex colors (white -> pink -> lime green -> blue)
 const vertexColors4Vertices = [
@@ -40,8 +42,10 @@ type Colors = number[];
 
 export interface Buffers {
   position: WebGLBuffer;
-  color: WebGLBuffer;
   indices: WebGLBuffer;
+  normal: WebGLBuffer;
+  color?: WebGLBuffer;
+  textureCoord?: WebGLBuffer;
 }
 
 export class BufferService extends SingletonService {
@@ -49,7 +53,17 @@ export class BufferService extends SingletonService {
 
   constructor() {
     super();
-    this.buffers = this.initializeBuffers();
+    const context = GLService.getContext();
+    if (!context) return;
+
+    this.buffers = this.initializeBuffers(context);
+    // Load texture
+    TextureService.loadTexture(
+      context,
+      __dirname + "images/circuit-board.svg"
+    );
+    // Flip image pixels into the bottom-to-top order that WebGL expects.
+    context.pixelStorei(context.UNPACK_FLIP_Y_WEBGL, true);
   }
 
   public static getBuffers() {
@@ -58,14 +72,13 @@ export class BufferService extends SingletonService {
 
   public static destroy() {}
 
-  private initializeBuffers() {
-    const context = GLService.getContext();
-    if (!context) return;
-
+  private initializeBuffers(context: WebGLRenderingContext) {
     return {
       position: BufferService.createPositionBuffer(context),
-      color: BufferService.createColorBuffer(context),
+      // color: BufferService.createColorBuffer(context),
       indices: BufferService.createIndexBuffer(context),
+      textureCoord: BufferService.createTextureBuffer(context),
+      normal: BufferService.createNormalBuffer(context),
     };
   }
 
@@ -132,7 +145,10 @@ export class BufferService extends SingletonService {
     const colorBuffer = context.createBuffer();
     context.bindBuffer(context.ARRAY_BUFFER, colorBuffer);
 
-    const colors = BufferService.transformFaceColorsToVertexColors(faceColors, 4);
+    const colors = BufferService.transformFaceColorsToVertexColors(
+      faceColors,
+      4
+    );
 
     context.bufferData(
       context.ARRAY_BUFFER,
@@ -141,5 +157,61 @@ export class BufferService extends SingletonService {
     );
 
     return colorBuffer;
+  }
+
+  private static createTextureBuffer(context: WebGLRenderingContext) {
+    const textureCoordBuffer = context.createBuffer();
+    context.bindBuffer(context.ARRAY_BUFFER, textureCoordBuffer);
+
+    const textureCoordinates = [
+      // Front
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+      // Back
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+      // Top
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+      // Bottom
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+      // Right
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+      // Left
+      0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+    ];
+
+    context.bufferData(
+      context.ARRAY_BUFFER,
+      new Float32Array(textureCoordinates),
+      context.STATIC_DRAW
+    );
+
+    return textureCoordBuffer;
+  }
+
+  private static createNormalBuffer(context: WebGLRenderingContext) {
+    const normalBuffer = context.createBuffer();
+    context.bindBuffer(context.ARRAY_BUFFER, normalBuffer);
+
+    const vertexNormals = [
+      // Front
+      0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+      // Back
+      0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+      // Top
+      0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+      // Bottom
+      0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+      // Right
+      1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+      // Left
+      -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+    ];
+
+    context.bufferData(
+      context.ARRAY_BUFFER,
+      new Float32Array(vertexNormals),
+      context.STATIC_DRAW
+    );
+
+    return normalBuffer;
   }
 }
